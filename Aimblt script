@@ -1,0 +1,231 @@
+local Camera = workspace.CurrentCamera
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local LocalPlayer = Players.LocalPlayer
+
+-- UI Variables
+local AimbotEnabled = false
+local FogEnabled = false
+local ESPEnabled = false
+local NightVisionEnabled = false
+local SpeedBoostEnabled = false
+local Holding = false
+
+-- Aimbot Settings
+_G.TeamCheck = false -- Lock aim only on enemies if true.
+_G.AimPart = "Head" -- Part to aim at.
+_G.Sensitivity = 0.2 -- Time to lock onto the target (in seconds).
+
+-- FOV Circle Settings
+_G.CircleSides = 64
+_G.CircleColor = Color3.fromRGB(255, 255, 255)
+_G.CircleTransparency = 0.7
+_G.CircleRadius = 80
+_G.CircleFilled = false
+_G.CircleVisible = true
+_G.CircleThickness = 1
+
+-- Create FOV Circle
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+FOVCircle.Radius = _G.CircleRadius
+FOVCircle.Filled = _G.CircleFilled
+FOVCircle.Color = _G.CircleColor
+FOVCircle.Visible = _G.CircleVisible
+FOVCircle.Transparency = _G.CircleTransparency
+FOVCircle.NumSides = _G.CircleSides
+FOVCircle.Thickness = _G.CircleThickness
+
+-- ESP Functionality
+local function EnableESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local highlight = Instance.new("Highlight")
+            highlight.Parent = player.Character or player.CharacterAdded:Wait()
+            highlight.FillTransparency = 0.5
+            highlight.FillColor = Color3.fromRGB(0, 255, 0)
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+        end
+    end
+end
+
+local function DisableESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if player.Character and player.Character:FindFirstChild("Highlight") then
+                player.Character.Highlight:Destroy()
+            end
+        end
+    end
+end
+
+-- Aimbot Logic
+local function GetClosestPlayer()
+    local MaximumDistance = _G.CircleRadius
+    local Target = nil
+
+    for _, v in ipairs(Players:GetPlayers()) do
+        if v.Name ~= LocalPlayer.Name then
+            if _G.TeamCheck == false or v.Team ~= LocalPlayer.Team then
+                local Character = v.Character
+                if Character and Character:FindFirstChild("HumanoidRootPart") and Character:FindFirstChild("Humanoid") and Character.Humanoid.Health > 0 then
+                    local ScreenPoint = Camera:WorldToScreenPoint(Character.HumanoidRootPart.Position)
+                    local Distance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
+
+                    if Distance < MaximumDistance then
+                        Target = v
+                        MaximumDistance = Distance
+                    end
+                end
+            end
+        end
+    end
+
+    return Target
+end
+
+-- Input Handling
+UserInputService.InputBegan:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+        Holding = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(Input)
+    if Input.UserInputType == Enum.UserInputType.MouseButton2 then
+        Holding = false
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    -- Update FOV Circle
+    FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
+    FOVCircle.Radius = _G.CircleRadius
+    FOVCircle.Filled = _G.CircleFilled
+    FOVCircle.Color = _G.CircleColor
+    FOVCircle.Visible = _G.CircleVisible
+    FOVCircle.Transparency = _G.CircleTransparency
+    FOVCircle.NumSides = _G.CircleSides
+    FOVCircle.Thickness = _G.CircleThickness
+
+    if Holding and AimbotEnabled then
+        local ClosestPlayer = GetClosestPlayer()
+        if ClosestPlayer and ClosestPlayer.Character and ClosestPlayer.Character:FindFirstChild(_G.AimPart) then
+            local TargetPart = ClosestPlayer.Character[_G.AimPart]
+            TweenService:Create(Camera, TweenInfo.new(_G.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                CFrame = CFrame.new(Camera.CFrame.Position, TargetPart.Position)
+            }):Play()
+        end
+    end
+end)
+
+-- Speed Boost
+local function EnableSpeedBoost()
+    LocalPlayer.Character.Humanoid.WalkSpeed = 50
+end
+
+local function DisableSpeedBoost()
+    LocalPlayer.Character.Humanoid.WalkSpeed = 16
+end
+
+-- Night Vision
+local function EnableNightVision()
+    Lighting.Brightness = 2
+    Lighting.ClockTime = 0
+end
+
+local function DisableNightVision()
+    Lighting.Brightness = 1
+    Lighting.ClockTime = 14
+end
+
+-- UI Creation
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local MinimizeButton = Instance.new("TextButton")
+local AimbotToggle = Instance.new("TextButton")
+local FogToggle = Instance.new("TextButton")
+local ESPToggle = Instance.new("TextButton")
+local SpeedBoostToggle = Instance.new("TextButton")
+local NightVisionToggle = Instance.new("TextButton")
+
+-- UI Properties
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+MainFrame.Size = UDim2.new(0, 200, 0, 250)
+MainFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+
+MinimizeButton.Parent = MainFrame
+MinimizeButton.Text = "-"
+MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
+MinimizeButton.Position = UDim2.new(1, -25, 0, 5)
+
+AimbotToggle.Parent = MainFrame
+AimbotToggle.Text = "Aimbot: OFF"
+AimbotToggle.Size = UDim2.new(1, -20, 0, 40)
+AimbotToggle.Position = UDim2.new(0, 10, 0, 30)
+
+FogToggle.Parent = MainFrame
+FogToggle.Text = "Fog: OFF"
+FogToggle.Size = UDim2.new(1, -20, 0, 40)
+FogToggle.Position = UDim2.new(0, 10, 0, 80)
+
+ESPToggle.Parent = MainFrame
+ESPToggle.Text = "ESP: OFF"
+ESPToggle.Size = UDim2.new(1, -20, 0, 40)
+ESPToggle.Position = UDim2.new(0, 10, 0, 130)
+
+SpeedBoostToggle.Parent = MainFrame
+SpeedBoostToggle.Text = "Speed Boost: OFF"
+SpeedBoostToggle.Size = UDim2.new(1, -20, 0, 40)
+SpeedBoostToggle.Position = UDim2.new(0, 10, 0, 180)
+
+NightVisionToggle.Parent = MainFrame
+NightVisionToggle.Text = "Night Vision: OFF"
+NightVisionToggle.Size = UDim2.new(1, -20, 0, 40)
+NightVisionToggle.Position = UDim2.new(0, 10, 0, 230)
+
+-- Button Functions
+AimbotToggle.MouseButton1Click:Connect(function()
+    AimbotEnabled = not AimbotEnabled
+    AimbotToggle.Text = AimbotEnabled and "Aimbot: ON" or "Aimbot: OFF"
+end)
+
+FogToggle.MouseButton1Click:Connect(function()
+    FogEnabled = not FogEnabled
+    FogToggle.Text = FogEnabled and "Fog: ON" or "Fog: OFF"
+    game.Lighting.FogEnd = FogEnabled and 50 or 100000
+end)
+
+ESPToggle.MouseButton1Click:Connect(function()
+    ESPEnabled = not ESPEnabled
+    ESPToggle.Text = ESPEnabled and "ESP: ON" or "ESP: OFF"
+    if ESPEnabled then
+        EnableESP()
+    else
+        DisableESP()
+    end
+end)
+
+SpeedBoostToggle.MouseButton1Click:Connect(function()
+    SpeedBoostEnabled = not SpeedBoostEnabled
+    SpeedBoostToggle.Text = SpeedBoostEnabled and "Speed Boost: ON" or "Speed Boost: OFF"
+    if SpeedBoostEnabled then
+        EnableSpeedBoost()
+    else
+        DisableSpeedBoost()
+    end
+end)
+
+NightVisionToggle.MouseButton1Click:Connect(function()
+    NightVisionEnabled = not NightVisionEnabled
+    NightVisionToggle.Text = NightVisionEnabled and "Night Vision: ON" or "Night Vision: OFF"
+    if NightVisionEnabled then
+        EnableNightVision()
+    else
+        DisableNightVision()
+    end
+end)
