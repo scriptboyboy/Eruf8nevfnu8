@@ -145,87 +145,34 @@ end
 -- UI Creation
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
-local MinimizeButton = Instance.new("TextButton")
-local AimbotToggle = Instance.new("TextButton")
-local FogToggle = Instance.new("TextButton")
-local ESPToggle = Instance.new("TextButton")
-local SpeedBoostToggle = Instance.new("TextButton")
-local NightVisionToggle = Instance.new("TextButton")
+local Dragging = false
+local DragStart, StartPos
 
--- UI Properties
+-- MainFrame UI Properties
 ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 MainFrame.Size = UDim2.new(0, 200, 0, 250)
 MainFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MainFrame.Active = true
+MainFrame.Draggable = false
 
-MinimizeButton.Parent = MainFrame
-MinimizeButton.Text = "-"
-MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
-MinimizeButton.Position = UDim2.new(1, -25, 0, 5)
-
-AimbotToggle.Parent = MainFrame
-AimbotToggle.Text = "Aimbot: OFF"
-AimbotToggle.Size = UDim2.new(1, -20, 0, 40)
-AimbotToggle.Position = UDim2.new(0, 10, 0, 30)
-
-FogToggle.Parent = MainFrame
-FogToggle.Text = "Fog: OFF"
-FogToggle.Size = UDim2.new(1, -20, 0, 40)
-FogToggle.Position = UDim2.new(0, 10, 0, 80)
-
-ESPToggle.Parent = MainFrame
-ESPToggle.Text = "ESP: OFF"
-ESPToggle.Size = UDim2.new(1, -20, 0, 40)
-ESPToggle.Position = UDim2.new(0, 10, 0, 130)
-
-SpeedBoostToggle.Parent = MainFrame
-SpeedBoostToggle.Text = "Speed Boost: OFF"
-SpeedBoostToggle.Size = UDim2.new(1, -20, 0, 40)
-SpeedBoostToggle.Position = UDim2.new(0, 10, 0, 180)
-
-NightVisionToggle.Parent = MainFrame
-NightVisionToggle.Text = "Night Vision: OFF"
-NightVisionToggle.Size = UDim2.new(1, -20, 0, 40)
-NightVisionToggle.Position = UDim2.new(0, 10, 0, 230)
-
--- Button Functions
-AimbotToggle.MouseButton1Click:Connect(function()
-    AimbotEnabled = not AimbotEnabled
-    AimbotToggle.Text = AimbotEnabled and "Aimbot: ON" or "Aimbot: OFF"
-end)
-
-FogToggle.MouseButton1Click:Connect(function()
-    FogEnabled = not FogEnabled
-    FogToggle.Text = FogEnabled and "Fog: ON" or "Fog: OFF"
-    game.Lighting.FogEnd = FogEnabled and 50 or 100000
-end)
-
-ESPToggle.MouseButton1Click:Connect(function()
-    ESPEnabled = not ESPEnabled
-    ESPToggle.Text = ESPEnabled and "ESP: ON" or "ESP: OFF"
-    if ESPEnabled then
-        EnableESP()
-    else
-        DisableESP()
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Dragging = true
+        DragStart = input.Position
+        StartPos = MainFrame.Position
     end
 end)
 
-SpeedBoostToggle.MouseButton1Click:Connect(function()
-    SpeedBoostEnabled = not SpeedBoostEnabled
-    SpeedBoostToggle.Text = SpeedBoostEnabled and "Speed Boost: ON" or "Speed Boost: OFF"
-    if SpeedBoostEnabled then
-        EnableSpeedBoost()
-    else
-        DisableSpeedBoost()
+MainFrame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Dragging = false
     end
 end)
 
-NightVisionToggle.MouseButton1Click:Connect(function()
-    NightVisionEnabled = not NightVisionEnabled
-    NightVisionToggle.Text = NightVisionEnabled and "Night Vision: ON" or "Night Vision: OFF"
-    if NightVisionEnabled then
-        EnableNightVision()
-    else
-        DisableNightVision()
+UserInputService.InputChanged:Connect(function(input)
+    if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local Delta = input.Position - DragStart
+        MainFrame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
     end
 end)
